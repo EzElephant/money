@@ -1,39 +1,135 @@
 import sys
 import matplotlib.pyplot as plt
 
-def ask_money():
-    while True:
+class Record:
+    """Represent a record."""
+    # constructor
+    def __init__(self, cate, desc, cost):
+        self._cate = cate
+        self._desc = desc
+        self._amount = cost
+    # getter methods
+    @property
+    def cate(self):
+        return self._cate
+    @property
+    def desc(self):
+        return self._desc
+    @property
+    def amount(self):
+        return self._amount
+
+class Records:
+    """Maintain a list of all the 'Record's and the initial amount of money."""
+    def __init__(self):
+        self._records = []
         try:
-            money = int(input('How much money do you have? '))
-        # deal exception
+            # Use with open. In the end, the file will close automatically.
+            with open('records.txt', 'r') as f:
+                buffer = f.readline()
+                # if empty string means that it is the first time to open program
+                if (buffer == ''):
+                    raise FileNotFoundError
+                self._money = int(buffer)
+                for tmp in f.readlines():
+                    desc, amt = tmp.split(' ')
+                    self._records.append(tuple([desc, int(amt)]))
+                print('Welcome back!')
+        # if the file has wrong format tell the user
         except ValueError:
-            print('Invalid value for money, please enter an interger.')
-            continue
-        break
-    return money
+            sys.stderr.write('Invalid format in records.txt.\n')
+            self._money = self.ask_money()
+        except FileNotFoundError:
+            self._money = self.ask_money()
 
-def init():
-    records = []
-    try:
-        # Use with open. In the end, the file will close automatically.
-        with open('records.txt', 'r') as f:
-            buffer = f.readline()
-            # if empty string means that it is the first time to open program
-            if (buffer == ''):
-                raise FileNotFoundError
-            money = int(buffer)
-            for tmp in f.readlines():
-                desc, amt = tmp.split(' ')
-                records.append(tuple([desc, int(amt)]))
-            print('Welcome back!')
-    # if the file has wrong format tell the user
-    except ValueError:
-        sys.stderr.write('Invalid format in records.txt.\n')
-        money = ask_money()
-    except FileNotFoundError:
-        money = ask_money()
-    return money, records
+    @staticmethod
+    def ask_money():
+        while True:
+            try:
+                money = int(input('How much money do you have? '))
+            # deal exception
+            except ValueError:
+                print('Invalid value for money, please enter an interger.')
+                continue
+            break
+        return money
 
+    def add(self):
+        1
+    # 1. Define the formal parameter so that a string input by the user
+    # representing a record can be passed in.
+    # 2. Convert the string into a Record instance.
+    # 3. Check if the category is valid. For this step, the predefined
+    # categories have to be passed in through the parameter.
+    # 4. Add the Record into self._records if the category is valid.
+    def view(self):
+        1
+    # 1. Print all the records and report the balance.
+    def delete(self):
+        1
+    # 1. Define the formal parameter.
+    # 2. Delete the specified record from self._records.
+    def find(self):
+        1
+    # 1. Define the formal parameter to accept a non-nested list
+    # (returned from find_subcategories)
+    # 2. Print the records whose category is in the list passed in
+    # and report the total amount of money of the listed records.
+    def save(self):
+        1
+    # 1. Write the initial money and all the records to 'records.txt'.
+
+class Categories:
+    """Maintain the category list and provide some methods."""
+    def __init__(self, L):
+        self._categories = L
+
+    def view(self, step = 0, L = []):
+        if L == []:
+            L = self._categories
+        for cate in L:
+            if type(cate) == list:
+                self.view(step + 1, cate)
+            else:
+                print('  ' * step + '- ' + cate)
+                
+
+    def is_category_valid(self, tar, L = []):
+        if L == []:
+            L = self._categories
+        for cate in L:
+            if type(cate) == list:
+                if self.is_category_valid(tar, cate):
+                    return True
+            else:
+                if cate == tar:
+                    return True
+        return False
+
+    def find_subcategories(self, tar, L = []):
+        def _flatten(L):
+            if type(L) == list:
+                result = []
+                for child in L:
+                    result.extend(_flatten(child))
+                return result
+            else:
+                return [L]
+
+        if L == []:
+            L = self._categories
+        if type(L) == list:
+            for v in L:
+                p = self.find_subcategories(tar, v)
+                if p == True:
+                    # if found, return the flatten list including itself
+                    # and its subcategories
+                    index = L.index(v)
+                    return _flatten(L[index:index + 2])
+                if p != False:
+                # p is a list returned from flatten
+                    return p
+        return L == tar
 
 # add function
 def add(money, records):
@@ -117,20 +213,26 @@ def write_file(money, records):
 
 # main function
 if __name__ == '__main__':
-    # enter initial money
-    money, records = init()
-
-    # command
+    categories = Categories()
+    records = Records()
     while True:
-        op = input('What do you want to do (add / view / delete / exit)? ')
-        if (op == 'add'):
-            money, records = add(money, records)
-        elif (op == 'view'):
-            view(money, records)
-        elif (op == 'delete'):
-            money, records = delete(money, records)
-        elif (op == 'exit'):
-            write_file(money, records);
+        command = input('\nWhat do you want to do (add / ...)? ')
+        if command == 'add':
+            record = input('Add an expense or income record with ...:\n')
+            records.add(record, categories)
+        elif command == 'view':
+            records.view()
+        elif command == 'delete':
+            delete_record = input("Which record do you want to delete? ")
+            records.delete(delete_record)
+        elif command == 'view categories':
+            categories.view()
+        elif command == 'find':
+            category = input('Which category do you want to find? ')
+            target_categories = categories.find_subcategories(category)
+            records.find(target_categories)
+        elif command == 'exit':
+            records.save()
             break
         else:
-            print('Please enter valid command.')
+            sys.stderr.write('Invalid command. Try again.\n')
