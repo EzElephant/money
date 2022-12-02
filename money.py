@@ -4,10 +4,22 @@ import matplotlib.pyplot as plt
 class Record:
     """Represent a record."""
     # constructor
-    def __init__(self, cate, desc, cost):
-        self._cate = cate
-        self._desc = desc
-        self._amount = cost
+    def __init__(self, L):
+        if len(L) != 3:
+            self.exist = False
+            sys.stderr.write('Invalid format for record')
+            return
+        self.exist = True
+        self._cate = L[0]
+        self._desc = L[1]
+        try:
+            self._amount = int(L[2])
+        except ValueError:
+            print('Invalid value for cost, please enter an interger.')
+
+    def __repr__(self):
+        return '%-15s %-20s %-6d' % (self._cate, self._desc, self._amount)
+
     # getter methods
     @property
     def cate(self):
@@ -54,30 +66,75 @@ class Records:
             break
         return money
 
-    def add(self):
-        1
-    # 1. Define the formal parameter so that a string input by the user
-    # representing a record can be passed in.
-    # 2. Convert the string into a Record instance.
-    # 3. Check if the category is valid. For this step, the predefined
-    # categories have to be passed in through the parameter.
-    # 4. Add the Record into self._records if the category is valid.
+    def add(self, record, categories):
+        if categories.is_category_valid(record.cate):
+            self._records.append(record)
+            self._money += int(record.amount)
+        else:
+            sys.stderr.write('Invalid input.\nFail to add a record.\n')
+
     def view(self):
-        1
-    # 1. Print all the records and report the balance.
-    def delete(self):
-        1
-    # 1. Define the formal parameter.
-    # 2. Delete the specified record from self._records.
-    def find(self):
-        1
-    # 1. Define the formal parameter to accept a non-nested list
-    # (returned from find_subcategories)
-    # 2. Print the records whose category is in the list passed in
-    # and report the total amount of money of the listed records.
+        # pos_size = []
+        # pos_label = []
+        # neg_size = []
+        # neg_label = []
+        print('Here\'s your expense and income records:')
+        print('Category        Description          Amount')
+        print('-------------------------------------------')
+        for record in self._records:
+            print(record)
+        print('-------------------------------------------')
+        print('Now you have', self._money, 'dollars.')
+
+        # draw pie chart
+        # if (len(pos_size) > 0):
+        #     plt.title("Income records")
+        #     plt.pie(pos_size, labels = pos_label ,autopct='%1.1f%%')
+        #     plt.axis('equal')
+        #     plt.show()
+
+        # if (len(neg_size) > 0):
+        #     plt.title("Expenditure records")
+        #     plt.pie(neg_size, labels = neg_label ,autopct='%1.1f%%')
+        #     plt.axis('equal')
+        #     plt.show()
+
+    def delete(self, description):
+        for record in self._records:
+            if description in record.desc:
+                print('Do you want to delete the following record?(y/n)')
+                print('Category        Description          Amount')
+                print('-------------------------------------------')
+                print(record)
+                answer = input()
+                if answer == 'y' or answer == 'Y':
+                    # delete the record
+                    self.records.remove(record)
+                    self._money -= int(record.amount)
+                    print('Delete successfully.')
+        # if didn't match, tell the user.
+        print('Can\'t find more related record.')
+
+    def find(self, target_categories):
+        for record in self._records:
+            print('Here\'s your expense and income records:')
+            print('Category        Description          Amount')
+            print('-------------------------------------------')
+            money = 0
+            if record.cate in target_categories:
+                print(record)
+                money += record.amount
+            print('-------------------------------------------')
+            print('Now you have', money, 'dollars.')
+
     def save(self):
-        1
-    # 1. Write the initial money and all the records to 'records.txt'.
+        with open('records.txt', 'w+') as f:
+            f.write(str(self._money) + '\n')
+            buffer = []
+            for record in self._records:
+                buffer.append(str(record.cate) + ' ' + str(record.desc) + ' ' + str(record.amount))
+            f.writelines('\n'.join(buffer))
+        sys.stderr.write('Exit successfully.')
 
 class Categories:
     """Maintain the category list and provide some methods."""
@@ -129,102 +186,23 @@ class Categories:
                 if p != False:
                 # p is a list returned from flatten
                     return p
-        return L == tar
-
-# add function
-def add(money, records):
-    try:
-        desc, amt = input('Add an expense or income record with description and amount:\n').split(' ')
-        # judge whether it is valid input
-        amt = int(amt)
-    except ValueError:
-        sys.stderr.write('Invalid input.\nFail to add a record.\n')
-        return money, records
-    # create tuple and append it to the end of records
-    records.append(tuple([desc, int(amt)]))
-    # money update
-    money += amt
-    return money, records
-
-# view function
-def view(money, records):
-    pos_size = []
-    pos_label = []
-    neg_size = []
-    neg_label = []
-    print('Here\'s your expense and income records:')
-    print('Description          Amount')
-    print('---------------------------')
-    for record in records:
-        desc, amt = record
-        if amt > 0:
-            pos_size.append(amt)
-            pos_label.append(desc)
-        elif amt < 0:
-            neg_size.append(-amt)
-            neg_label.append(desc)
-        print('%-20s %-6d' % (desc, amt))
-    print('---------------------------')
-    print('Now you have', money, 'dollars.')
-
-    # draw pie chart
-    if (len(pos_size) > 0):
-        plt.title("Income records")
-        plt.pie(pos_size, labels = pos_label ,autopct='%1.1f%%')
-        plt.axis('equal')
-        plt.show()
-
-    if (len(neg_size) > 0):
-        plt.title("Expenditure records")
-        plt.pie(neg_size, labels = neg_label ,autopct='%1.1f%%')
-        plt.axis('equal')
-        plt.show()
-
-# delete function
-def delete(money, records):
-    description = input('Can you descripe which record you want to delete?\n')
-    for record in records:
-        desc, amt = record
-        if description in desc:
-            print('Do you want to delete the following record?(y/n)')
-            print('Description:', desc)
-            print('Amount:', amt)
-            answer = input()
-            if answer == 'y' or answer == 'Y':
-                # delete the record
-                records.remove(record)
-                # money update
-                money -= int(amt)
-                print('Delete successfully.')
-                return money, records
-    # if didn't match, tell the user.
-    print('Can\'t find more related record.')
-    return money, records
-
-# write records to file
-def write_file(money, records):
-    with open('records.txt', 'w+') as f:
-        f.write(str(money) + '\n')
-        buffer = []
-        for record in records:
-            buffer.append(str(record[0]) + ' ' + str(record[1]))
-        f.writelines('\n'.join(buffer))
-    sys.stderr.write('Exit successfully.')
+        return L == tar  
 
 # main function
 if __name__ == '__main__':
-    categories = Categories()
+    categories = Categories(['expense', ['food', ['meal', 'snack', 'drink'], 'transportation',['bus', 'railway']], 'income', ['salary', 'bonus']])
     records = Records()
     while True:
-        command = input('\nWhat do you want to do (add / ...)? ')
+        command = input('What do you want to do  (add / view / delete / view categories / find / exit)? ')
         if command == 'add':
-            record = input('Add an expense or income record with ...:\n')
-            records.add(record, categories)
+            record = Record(input('Add an expense or income record with category, description, and cost (separate by spaces):\n').split(' '))
+            if record.exist:
+                records.add(record, categories)
         elif command == 'view':
             records.view()
         elif command == 'delete':
-            delete_record = input("Which record do you want to delete? ")
-            records.delete(delete_record)
+            description = input('Can you descripe which record you want to delete?\n')
+            records.delete(description)
         elif command == 'view categories':
             categories.view()
         elif command == 'find':
