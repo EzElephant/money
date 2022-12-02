@@ -1,27 +1,63 @@
 import sys
 import matplotlib.pyplot as plt
 
+class Date:
+    """Represent a date."""
+    def __init__(self, month, day):
+        """Constructor for Date."""
+        if month < 1 or month > 12:
+            raise ValueError
+        self._month = month
+        if day < 0:
+            raise ValueError
+        if day > 29 and month in [2]:
+            raise ValueError
+        if day > 30 and month in [4, 6, 9, 11]:
+            raise ValueError
+        if day > 31:
+            raise ValueError
+        self._day = day
+
+    def __repr__(self):
+        return f'{self._month:02d}/{self._day:02d}'
+
+    def __int__(self):
+        """Convert Date to int."""
+        # Use for sort.
+        return self._month * 31 + self._day
+
+    #getter method
+    @property
+    def month(self):
+        """property for _month"""
+        return self._month
+    @property
+    def day(self):
+        """property for _day"""
+        return self._day
+
 class Record:
     """Represent a record."""
     # constructor
     def __init__(self, L):
         """Constructor for Record. """
-        if len(L) != 3:
+        if len(L) != 5:
             self.exist = False
-            sys.stderr.write('Invalid format for record\n')
+            sys.stderr.write('Invalid format for record.\n')
             return
-        self.exist = True
-        self._cate = L[0]
-        self._desc = L[1]
         try:
-            self._amount = int(L[2])
+            self.exist = True
+            self._cate = L[2]
+            self._desc = L[3]
+            self._date = Date(int(L[0]), int(L[1]))
+            self._amount = int(L[4])
         except ValueError:
-            print('Invalid value for cost, please enter an interger.')
+            print('Invalid input.')
             self.exist = False
 
     def __repr__(self):
         """repr for Record."""
-        return '%-15s %-20s %-6d' % (self._cate, self._desc, self._amount)
+        return f'{self._date}  {self._cate:15s} {self._desc:20s} {self._amount}'
 
     # getter methods
     @property
@@ -36,6 +72,10 @@ class Record:
     def amount(self):
         """property for _amount"""
         return self._amount
+    @property
+    def date(self):
+        """property for _date"""
+        return self._date
 
 class Records:
     """Maintain a list of all the 'Record's and the initial amount of money."""
@@ -51,7 +91,11 @@ class Records:
                     raise FileNotFoundError
                 self._money = int(buffer)
                 for tmp in f.readlines():
-                    self._records.append(Record(tmp.split(' ')))
+                    new_record = Record(tmp.split(' '))
+                    if new_record.exist:
+                        self._records.append(new_record)
+                    else:
+                        raise ValueError
                 print('Welcome back!')
         # if the file has wrong format tell the user
         except ValueError:
@@ -59,6 +103,7 @@ class Records:
             self._money = self.ask_money()
         except FileNotFoundError:
             self._money = self.ask_money()
+        self._records.sort(key = lambda x: int(x.date))
 
     @staticmethod
     def ask_money():
@@ -80,6 +125,7 @@ class Records:
             self._money += int(record.amount)
         else:
             sys.stderr.write('Invalid input.\nFail to add a record.\n')
+        self._records.sort(key = lambda x: int(x.date))
 
     def view(self):
         """View the Records."""
@@ -87,31 +133,52 @@ class Records:
         pos_label = []
         neg_size = []
         neg_label = []
+        list_x = []
+        list_y = []
+        x_label = []
+        money_change = 0
         print('Here\'s your expense and income records:')
-        print('Category        Description          Amount')
-        print('-------------------------------------------')
+        print('Date   Category        Description          Amount')
+        print('--------------------------------------------------')
         for record in self._records:
             print(record)
+            money_change += int(record.amount)
+            if len(list_x) > 0 and int(record.date) == list_x[-1]:
+                list_y[-1] = money_change
+            else:
+                list_x.append(int(record.date))
+                list_y.append(money_change)
+                x_label.append(record.date)
             if record.amount > 0:
                 pos_size.append(record.amount)
                 pos_label.append(record.desc)
             elif record.amount < 0:
                 neg_size.append(-record.amount)
                 neg_label.append(record.desc)
-        print('-------------------------------------------')
+        print('--------------------------------------------------')
         print('Now you have', self._money, 'dollars.')
 
         # draw pie chart
-        if (len(pos_size) > 0):
-            plt.title("Income records")
-            plt.pie(pos_size, labels = pos_label ,autopct='%1.1f%%')
-            plt.axis('equal')
-            plt.show()
-
-        if (len(neg_size) > 0):
-            plt.title("Expenditure records")
-            plt.pie(neg_size, labels = neg_label ,autopct='%1.1f%%')
-            plt.axis('equal')
+        see_pie = input('Do you want to see pie chart? (y/n) ')
+        if see_pie in ['y', 'Y']:
+            if (len(pos_size) > 0):
+                plt.title("Income records")
+                plt.pie(pos_size, labels = pos_label ,autopct='%1.1f%%')
+                plt.axis('equal')
+                plt.show()
+            if (len(neg_size) > 0):
+                plt.title("Expenditure records")
+                plt.pie(neg_size, labels = neg_label ,autopct='%1.1f%%')
+                plt.axis('equal')
+                plt.show()
+        
+        see_plot = input('Do you want to see plot? (y/n) ')
+        if see_plot in ['y', 'Y']:
+            plt.title("Chart for money change")
+            plt.ylabel('Money change')
+            plt.xlabel('Date')
+            plt.plot(range(len(list_x)), list_y, color='red', markersize="16", marker=".")
+            plt.xticks(range(len(list_x)), x_label)
             plt.show()
 
     def delete(self, description):
@@ -119,8 +186,8 @@ class Records:
         for record in self._records:
             if description in record.desc:
                 print('Do you want to delete the following record?(y/n)')
-                print('Category        Description          Amount')
-                print('-------------------------------------------')
+                print('Date   Category        Description          Amount')
+                print('--------------------------------------------------')
                 print(record)
                 answer = input()
                 if answer == 'y' or answer == 'Y':
@@ -134,14 +201,14 @@ class Records:
     def find(self, target_categories):
         """Find particular record according to the category."""
         print('Here\'s your expense and income records:')
-        print('Category        Description          Amount')
-        print('-------------------------------------------')
+        print('Date   Category        Description          Amount')
+        print('--------------------------------------------------')
         money = 0
         for record in self._records:
             if record.cate in target_categories:
                 print(record)
                 money += record.amount
-        print('-------------------------------------------')
+        print('--------------------------------------------------')
         print('Now you have', money, 'dollars.')
 
     def save(self):
@@ -150,7 +217,7 @@ class Records:
             f.write(str(self._money) + '\n')
             buffer = []
             for record in self._records:
-                buffer.append(str(record.cate) + ' ' + str(record.desc) + ' ' + str(record.amount))
+                buffer.append(str(record.date.month) + ' ' + str(record.date.day) + ' ' + record.cate + ' ' + record.desc + ' ' + str(record.amount))
             f.writelines('\n'.join(buffer))
         sys.stderr.write('Exit successfully.')
 
