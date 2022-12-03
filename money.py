@@ -19,6 +19,7 @@ class Date:
         self._day = day
 
     def __repr__(self):
+        """repr for Date."""
         return f'{self._month:02d}/{self._day:02d}'
 
     def __int__(self):
@@ -195,6 +196,7 @@ class Records:
                     self._records.remove(record)
                     self._money -= int(record.amount)
                     print('Delete successfully.')
+                    return
         # if didn't match, tell the user.
         print('Can\'t find more related record.')
 
@@ -209,7 +211,7 @@ class Records:
                 print(record)
                 money += record.amount
         print('--------------------------------------------------')
-        print('Now you have', money, 'dollars.')
+        print('The total amount above is', money, 'dollars.')
 
     def save(self):
         """Save Records in records.txt."""
@@ -272,7 +274,7 @@ if __name__ == '__main__':
     while True:
         command = input('What do you want to do  (add / view / delete / view categories / find / exit)? ')
         if command == 'add':
-            record = Record(input('Add an expense or income record with category, description, and cost (separate by spaces):\n').split(' '))
+            record = Record(input('Add an expense or income record with date, category, description, and cost (separate by spaces):\n').split(' '))
             if record.exist:
                 records.add(record, categories)
         elif command == 'view':
